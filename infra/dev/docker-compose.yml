@@ -1,0 +1,25 @@
+networks:
+  streaming-platform-network:
+    driver: bridge
+
+services:
+  localstack:
+    image: localstack/localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3,sqs
+    volumes:
+      - "../localstack-init:/etc/localstack/init/ready.d"
+    networks:
+      - streaming-platform-network
+  
+  metadata-db:
+    image: postgres:latest
+    container_name: metadata-db
+    ports:
+      - "5432:5432"
+    env_file:
+      - "../env/metadata.postgres.env"
+    networks:
+      - streaming-platform-network
