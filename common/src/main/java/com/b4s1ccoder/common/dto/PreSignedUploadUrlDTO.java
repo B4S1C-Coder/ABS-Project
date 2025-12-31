@@ -8,7 +8,7 @@ import lombok.extern.jackson.Jacksonized;
 @Data
 @Builder
 @Jacksonized
-public class PreSignedUploadUrl {
+public class PreSignedUploadUrlDTO {
   @NotBlank(message = "uploadUrl cannot be blank")
   private String uploadUrl;
 }
