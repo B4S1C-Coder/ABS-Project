@@ -77,11 +77,7 @@ public class VideoService {
     .build();
 
     CreateMultipartUploadResponse response = s3Client.createMultipartUpload(createRequest);
-    
-    return InitiateMultipartUploadResponseDTO.builder()
-      .uploadId(response.uploadId())
-      .key(key)
-    .build();
+    return new InitiateMultipartUploadResponseDTO(response.uploadId(), key);
   }
 
   // Pre-Signed URL for each chunk

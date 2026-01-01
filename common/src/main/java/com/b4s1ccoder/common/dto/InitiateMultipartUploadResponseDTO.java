@@ -1,12 +1,16 @@
 package com.b4s1ccoder.common.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.extern.jackson.Jacksonized;
+import lombok.NoArgsConstructor;
+// import lombok.extern.jackson.Jacksonized;
 
 @Data
 @Builder
-@Jacksonized
+// @Jacksonized
+@NoArgsConstructor
+@AllArgsConstructor
 public class InitiateMultipartUploadResponseDTO {
   private String uploadId;
   private String key;

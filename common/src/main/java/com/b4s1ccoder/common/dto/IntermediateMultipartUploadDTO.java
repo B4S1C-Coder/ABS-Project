@@ -2,13 +2,17 @@ package com.b4s1ccoder.common.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.extern.jackson.Jacksonized;
+import lombok.NoArgsConstructor;
+// import lombok.extern.jackson.Jacksonized;
 
 @Data
 @Builder
-@Jacksonized
+// @Jacksonized
+@NoArgsConstructor
+@AllArgsConstructor
 public class IntermediateMultipartUploadDTO {
   @NotBlank(message = "key cannot be blank")
   private String key;

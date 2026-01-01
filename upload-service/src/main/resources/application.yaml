@@ -1,14 +1,16 @@
 spring:
   application:
     name: upload-service
-  mvc:
-    apiversion:
-      use:
-        path-segment: 1 # The version is expected in the second path segment (index 1 after the root, e.g., /api/v1/products)
-      supported: 1.0,2.0
-      default: 1.0
+  autoconfigure:
+    exclude: io.awspring.cloud.autoconfigure.s3.S3AutoConfiguration
+  # mvc:
+  #   apiversion:
+  #     use:
+  #       path-segment: 1 # The version is expected in the second path segment (index 1 after the root, e.g., /api/v1/products)
+  #     supported: v1.0,v2.0
+  #     default: v1.0
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:metadata_db}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5001}/${DB_NAME:metadata_db}
     username: ${DB_USERNAME:db_user}
     password: ${DB_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
@@ -35,3 +37,9 @@ spring:
         static: us-east-1
 server:
   port: ${UPLOAD_SERVICE_PORT:20001}
+logging:
+  level:
+    org:
+      springframework:
+        security: DEBUG
+        web: DEBUG

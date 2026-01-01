@@ -3,13 +3,17 @@ package com.b4s1ccoder.common.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.extern.jackson.Jacksonized;
+import lombok.NoArgsConstructor;
+// import lombok.extern.jackson.Jacksonized;
 
 @Data
 @Builder
-@Jacksonized
+// @Jacksonized
+@NoArgsConstructor
+@AllArgsConstructor
 public class VideoUploadDTO {
   @Builder.Default
   @Size(max = 100, message = "Title must not exceed 100 characters")

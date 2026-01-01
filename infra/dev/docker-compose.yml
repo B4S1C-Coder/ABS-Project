@@ -18,7 +18,7 @@ services:
     image: postgres:latest
     container_name: metadata-db
     ports:
-      - "5432:5432"
+      - "5001:5432"
     env_file:
       - "../env/metadata.postgres.env"
     networks:

@@ -3,14 +3,26 @@ package com.b4s1ccoder.common.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.extern.jackson.Jacksonized;
+import lombok.NoArgsConstructor;
+// import lombok.extern.jackson.Jacksonized;
 
 @Data
 @Builder
-@Jacksonized
+// @Jacksonized
+@NoArgsConstructor
+@AllArgsConstructor
 public class InitiateMultipartUploadDTO {
+  // public InitiateMultipartUploadDTO() {
+  // }
+
+  // public InitiateMultipartUploadDTO(String filename, String title, String description) {
+  //   this.filename = filename;
+  //   this.title = title;
+  //   this.description = description;
+  // }
 
   @NotBlank(message = "Filename is required.")
   @Size(max = 255, message = "Filename should not be more than 255 characters long.")

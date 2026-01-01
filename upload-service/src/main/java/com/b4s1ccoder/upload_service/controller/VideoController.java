@@ -20,21 +20,26 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/internal/uploads") // path: /internal/v1.0/uploads
+@RequestMapping(value = "/internal/uploads") // path: /internal/v1.0/uploads
 @RequiredArgsConstructor
 public class VideoController {
 
   private final VideoService videoService;
 
-  @GetMapping(path = "/initiate", version = "1.0")
+  @GetMapping("/health")
+  public ResponseEntity<String> healthCheck() {
+    return ResponseEntity.ok("Upload service is up and running.");
+  }
+
+  @PostMapping(path = "/initiate-single")
   public ResponseEntity<PreSignedUploadUrlDTO> initiateUploadSimple(@Valid @RequestBody VideoUploadDTO req) {
     String presignedUrl = videoService.initiateUpload(req);
     return ResponseEntity
       .status(HttpStatus.CREATED)
-      .body(PreSignedUploadUrlDTO.builder().uploadUrl(presignedUrl).build());
+      .body(new PreSignedUploadUrlDTO(presignedUrl));
   }
 
-  @GetMapping(path = "/initiate", version = "2.0")
+  @PostMapping(path = "/initiate")
   public ResponseEntity<InitiateMultipartUploadResponseDTO> initiateUploadMultipart(
     @Valid @RequestBody InitiateMultipartUploadDTO req
   ) {
@@ -43,7 +48,7 @@ public class VideoController {
       .body(videoService.initiateMultipartUpload(req));
   }
 
-  @PostMapping(path = "/sign-part", version = "2.0")
+  @PostMapping(path = "/sign-part")
   public ResponseEntity<PreSignedUploadUrlDTO> signPart(
     @Valid @RequestBody IntermediateMultipartUploadDTO req
   ) {
@@ -52,10 +57,10 @@ public class VideoController {
 
     return ResponseEntity
       .status(HttpStatus.OK)
-      .body(PreSignedUploadUrlDTO.builder().uploadUrl(uploadUrl).build());
+      .body(new PreSignedUploadUrlDTO(uploadUrl));
   }
 
-  @PostMapping(path = "/complete", version = "2.0")
+  @PostMapping(path = "/complete")
   public ResponseEntity<Void> complete(@Valid @RequestBody CompleteMultipartUploadDTO req) {
     videoService.completeUpload(req.getKey(), req.getUploadId(), req.getParts());
     return ResponseEntity.status(HttpStatus.NO_CONTENT).build();

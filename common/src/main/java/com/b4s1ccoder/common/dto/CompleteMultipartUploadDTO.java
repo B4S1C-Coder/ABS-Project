@@ -6,13 +6,17 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.extern.jackson.Jacksonized;
+import lombok.NoArgsConstructor;
+// import lombok.extern.jackson.Jacksonized;
 
 @Data
 @Builder
-@Jacksonized
+// @Jacksonized
+@NoArgsConstructor
+@AllArgsConstructor
 public class CompleteMultipartUploadDTO {
   @NotBlank(message = "Filename is required.")
   @Size(max = 255, message = "Filename should not be more than 255 characters long.")
