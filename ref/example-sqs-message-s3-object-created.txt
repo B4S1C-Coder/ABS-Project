@@ -1,0 +1,63 @@
+{
+  "Messages": [
+    {
+      "MessageId": "e61e58aa-baaa-47ac-99a7-8b367066028f",
+      "ReceiptHandle": "OWNjNDFlMzktYmI4ZS00YjA2LWE3NDMtYzEyNGIxMWU2MjI0IGFybjphd3M6c3FzOnVzLWVhc3QtMTowMDAwMDAwMDAwMDA6cHJvY2Vzc2luZy1xdWV1ZSBlNjFlNThhYS1iYWFhLTQ3YWMtOTlhNy04YjM2NzA2NjAyOGYgMTc2NzI4NjAwMy44Njg0MTk0",
+      "MD5OfBody": "efdc2e89c1d9fe9069a40cbcb8c465d8",
+      "Body": "{\"Service\": \"Amazon S3\", \"Event\": \"s3:TestEvent\", \"Time\": \"2026-01-01T16:36:35.283Z\", \"Bucket\": \"raw-video-bucket\", \"RequestId\": \"87373c48-dc43-4b52-ba9a-c82716d8405d\", \"HostId\": \"eftixk72aD6Ap51TnqcoF8eFidJG9Z/2\"}"
+    },
+    {
+      "MessageId": "159f9150-2e56-4d97-8bcb-9df2b303346e",
+      "ReceiptHandle": "Yzg1ODBmNzYtMmU1ZC00M2Q1LWJiNjAtOWNjZGQyOTg4YzQzIGFybjphd3M6c3FzOnVzLWVhc3QtMTowMDAwMDAwMDAwMDA6cHJvY2Vzc2luZy1xdWV1ZSAxNTlmOTE1MC0yZTU2LTRkOTctOGJjYi05ZGYyYjMwMzM0NmUgMTc2NzI4NjAwMy44Njg0NjA3",
+      "MD5OfBody": "208883495ddbc3a71450075456a56ddd",
+      "Body": "{\"Records\": [{\"eventVersion\": \"2.1\", \"eventSource\": \"aws:s3\", \"awsRegion\": \"us-east-1\", \"eventTime\": \"2026-01-01T16:39:36.778Z\", \"eventName\": \"ObjectCreated:CompleteMultipartUpload\", \"userIdentity\": {\"principalId\": \"AIDAJDPLRKLG7UEXAMPLE\"}, \"requestParameters\": {\"sourceIPAddress\": \"127.0.0.1\"}, \"responseElements\": {\"x-amz-request-id\": \"5dbec82a\", \"x-amz-id-2\": \"eftixk72aD6Ap51TnqcoF8eFidJG9Z/2\"}, \"s3\": {\"s3SchemaVersion\": \"1.0\", \"configurationId\": \"63a6e708\", \"bucket\": {\"name\": \"raw-video-bucket\", \"ownerIdentity\": {\"principalId\": \"A3NL1KOZZKExample\"}, \"arn\": \"arn:aws:s3:::raw-video-bucket\"}, \"object\": {\"key\": \"997361b3-3fcd-4438-a438-3c9bae758d01-gpt2.mp4\", \"sequencer\": \"0055AED6DCD90281E5\", \"eTag\": \"ee1b3821695fb032d865c2753b9011f0-52\", \"size\": 270291722}}}]}"
+    }
+  ]
+}
+
+
+The message of interest would look something like this:
+{
+  "MessageId": "159f9150-2e56-4d97-8bcb-9df2b303346e",
+  "ReceiptHandle": "Yzg1ODBmNzYtMmU1ZC00M2Q1LWJiNjAtOWNjZGQyOTg4YzQzIGFybjphd3M6c3FzOnVzLWVhc3QtMTowMDAwMDAwMDAwMDA6cHJvY2Vzc2luZy1xdWV1ZSAxNTlmOTE1MC0yZTU2LTRkOTctOGJjYi05ZGYyYjMwMzM0NmUgMTc2NzI4NjAwMy44Njg0NjA3",
+  "MD5OfBody": "208883495ddbc3a71450075456a56ddd",
+  "Body": {
+    "Records": [
+      {
+        "eventVersion": "2.1",
+        "eventSource": "aws:s3",
+        "awsRegion": "us-east-1",
+        "eventTime": "2026-01-01T16:39:36.778Z",
+        "eventName": "ObjectCreated:CompleteMultipartUpload",
+        "userIdentity": {
+          "principalId": "AIDAJDPLRKLG7UEXAMPLE"
+        },
+        "requestParameters": {
+          "sourceIPAddress": "127.0.0.1"
+        },
+        "responseElements": {
+          "x-amz-request-id": "5dbec82a",
+          "x-amz-id-2": "eftixk72aD6Ap51TnqcoF8eFidJG9Z/2"
+        },
+        "s3": {
+          "s3SchemaVersion": "1.0",
+          "configurationId": "63a6e708",
+          "bucket": {
+            "name": "raw-video-bucket",
+            "ownerIdentity": {
+              "principalId": "A3NL1KOZZKExample"
+            },
+            "arn": "arn:aws:s3:::raw-video-bucket"
+          },
+          "object": {
+            "key": "997361b3-3fcd-4438-a438-3c9bae758d01-gpt2.mp4",
+            "sequencer": "0055AED6DCD90281E5",
+            "eTag": "ee1b3821695fb032d865c2753b9011f0-52",
+            "size": 270291722
+          }
+        }
+      }
+    ]
+  }
+}
+

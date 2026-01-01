@@ -31,7 +31,7 @@ public class VideoController {
     return ResponseEntity.ok("Upload service is up and running.");
   }
 
-  @PostMapping(path = "/initiate-single")
+  @PostMapping("/initiate-single")
   public ResponseEntity<PreSignedUploadUrlDTO> initiateUploadSimple(@Valid @RequestBody VideoUploadDTO req) {
     String presignedUrl = videoService.initiateUpload(req);
     return ResponseEntity
@@ -39,7 +39,7 @@ public class VideoController {
       .body(new PreSignedUploadUrlDTO(presignedUrl));
   }
 
-  @PostMapping(path = "/initiate")
+  @PostMapping("/initiate")
   public ResponseEntity<InitiateMultipartUploadResponseDTO> initiateUploadMultipart(
     @Valid @RequestBody InitiateMultipartUploadDTO req
   ) {
@@ -48,7 +48,7 @@ public class VideoController {
       .body(videoService.initiateMultipartUpload(req));
   }
 
-  @PostMapping(path = "/sign-part")
+  @PostMapping("/sign-part")
   public ResponseEntity<PreSignedUploadUrlDTO> signPart(
     @Valid @RequestBody IntermediateMultipartUploadDTO req
   ) {
@@ -60,7 +60,7 @@ public class VideoController {
       .body(new PreSignedUploadUrlDTO(uploadUrl));
   }
 
-  @PostMapping(path = "/complete")
+  @PostMapping("/complete")
   public ResponseEntity<Void> complete(@Valid @RequestBody CompleteMultipartUploadDTO req) {
     videoService.completeUpload(req.getKey(), req.getUploadId(), req.getParts());
     return ResponseEntity.status(HttpStatus.NO_CONTENT).build();

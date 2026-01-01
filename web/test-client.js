@@ -1,39 +1,120 @@
-const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB
-const file = document.getElementById('fileInput').files[0]; // The 50MB file
-const totalParts = Math.ceil(file.size / CHUNK_SIZE);
+const fs = require("fs");
+const path = require("path");
 
-async function uploadFile() {
-    // 1. Get Upload ID from your Backend
-    const { uploadId, key } = await initiateUpload(file.name);
-    const parts = [];
+const BASE_URL = "http://localhost:20001/internal/uploads";
+const FILE_PATH = "../res/gpt2.mp4";
+const PART_SIZE = 5 * 1024 * 1024; // 5 MB
 
-    // 2. Loop through the file in chunks
-    for (let partNumber = 1; partNumber <= totalParts; partNumber++) {
-        
-        // --- THE MAGIC HAPPENS HERE ---
-        const start = (partNumber - 1) * CHUNK_SIZE;
-        const end = Math.min(start + CHUNK_SIZE, file.size);
-        
-        // Create a 'slice' (like a mini-file)
-        const chunk = file.slice(start, end); 
-        // ------------------------------
+// -----------------------------
+// Helpers
+// -----------------------------
+async function postJson(url, body) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
 
-        // 3. Get Presigned URL for this specific chunk
-        const { url } = await getPresignedUrl(key, uploadId, partNumber);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`${res.status} ${res.statusText}: ${text}`);
+  }
 
-        // 4. Upload the chunk directly to AWS
-        // Note: S3 returns an 'ETag' header which is like a receipt
-        const s3Response = await fetch(url, {
-            method: 'PUT',
-            body: chunk
-        });
-        
-        const eTag = s3Response.headers.get('ETag').replaceAll('"', '');
-        parts.push({ partNumber, eTag });
-        
-        console.log(`Uploaded part ${partNumber}/${totalParts}`);
-    }
-
-    // 5. Tell Backend to finish
-    await completeUpload(key, uploadId, parts);
+  return res.status === 204 ? null : res.json();
 }
+
+// -----------------------------
+// 1. Initiate multipart upload
+// -----------------------------
+async function initiateMultipartUpload(filename) {
+  return postJson(`${BASE_URL}/initiate`, {
+    filename,
+    title: "My Upload",
+    description: "Uploaded via Node.js client"
+  });
+}
+
+// -----------------------------
+// 2. Get presigned URL for part
+// -----------------------------
+async function signPart(key, uploadId, partNumber) {
+  const res = await postJson(`${BASE_URL}/sign-part`, {
+    key,
+    uploadId,
+    partNumber
+  });
+  return res.uploadUrl;
+}
+
+// -----------------------------
+// 3. Upload a single part to S3
+// -----------------------------
+async function uploadPart(uploadUrl, buffer) {
+  const res = await fetch(uploadUrl, {
+    method: "PUT",
+    body: buffer
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to upload part: ${res.statusText}`);
+  }
+
+  return res.headers.get("etag");
+}
+
+// -----------------------------
+// 4. Complete multipart upload
+// -----------------------------
+async function completeMultipartUpload(filename, key, uploadId, parts) {
+  await postJson(`${BASE_URL}/complete`, {
+    filename,
+    key,
+    uploadId,
+    parts
+  });
+}
+
+// -----------------------------
+// Main flow
+// -----------------------------
+async function uploadFileMultipart() {
+  const filename = path.basename(FILE_PATH);
+  const fileBuffer = fs.readFileSync(FILE_PATH);
+
+  console.log("Initiating multipart upload...");
+  const { uploadId, key } = await initiateMultipartUpload(filename);
+
+  console.log("Upload ID:", uploadId);
+  console.log("S3 Key:", key);
+
+  const parts = [];
+  let partNumber = 1;
+
+  for (let offset = 0; offset < fileBuffer.length; offset += PART_SIZE) {
+    const chunk = fileBuffer.slice(offset, offset + PART_SIZE);
+
+    console.log(`Signing part ${partNumber}...`);
+    const uploadUrl = await signPart(key, uploadId, partNumber);
+
+    console.log(`Uploading part ${partNumber} (${chunk.length} bytes)...`);
+    const eTag = await uploadPart(uploadUrl, chunk);
+
+    parts.push({
+      partNumber,
+      eTag
+    });
+
+    partNumber++;
+  }
+
+  console.log("Completing multipart upload...");
+  await completeMultipartUpload(filename, key, uploadId, parts);
+
+  console.log("✅ Upload complete!");
+}
+
+// Run
+uploadFileMultipart().catch(err => {
+  console.error("❌ Upload failed:", err);
+  process.exit(1);
+});
