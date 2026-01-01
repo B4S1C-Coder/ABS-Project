@@ -1,0 +1,1 @@
+MP4 files that are to be used for testing are kept here. This directory is in the repo just to enforce structure.
