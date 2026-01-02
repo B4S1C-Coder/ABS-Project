@@ -3,6 +3,7 @@ echo "Setting up S3 and SQS ..."
 
 # Create s3 bucket and queue
 awslocal s3 mb s3://raw-video-bucket
+awslocal s3 mb s3://streams-bucket
 awslocal sqs create-queue --queue-name processing-queue
 
 # Get Queue ARN

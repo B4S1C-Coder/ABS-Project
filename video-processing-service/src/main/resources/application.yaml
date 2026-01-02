@@ -1,3 +1,40 @@
 spring:
   application:
     name: video-processing-service
+  autoconfigure:
+    exclude:
+      - io.awspring.cloud.autoconfigure.s3.S3AutoConfiguration
+      - io.awspring.cloud.autoconfigure.sqs.SqsAutoConfiguration 
+  cloud:
+    aws:
+      s3:
+        endpoint: http://localhost:4566
+        path-style-access-enabled: true
+      sqs:
+        endpoint: http://localhost:4566
+        region: us-east-1
+        listener:
+          concurrency: 1
+          max-messages-per-poll: 1
+          visibility-timeout: 3600
+      credentials:
+        access-key: test
+        secret-key: test
+      region:
+        static: us-east-1
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5001}/${DB_NAME:metadata_db}
+    username: ${DB_USERNAME:db_user}
+    password: ${DB_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+app:
+  buckets:
+    raw: raw-video-bucket
+    streams: streams-bucket
