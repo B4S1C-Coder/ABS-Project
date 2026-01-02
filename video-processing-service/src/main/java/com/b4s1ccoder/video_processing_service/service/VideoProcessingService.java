@@ -74,7 +74,8 @@ public class VideoProcessingService {
 
   // Download raw video from s3
   private Path download(String bucket, String key) throws IOException {
-    Path tempFile = Files.createTempFile("raw-", ".mp4");
+    Path tempDir = Files.createTempDirectory("raw-video-");
+    Path tempFile = tempDir.resolve("input.mp4");
     log.info("Downloading s3://{}/{}", bucket, key);
 
     s3Client.getObject(
@@ -100,38 +101,70 @@ public class VideoProcessingService {
     // process itself.
 
     // The FFmpeg command that: raw video -> FFmpeg -> 1080p, 720p, 480p, 240p
+
+    // WORKS
+    // List<String> command = List.of(
+    //   "ffmpeg",
+    //   "-y",
+    //   "-i", input.toString(),
+    //   "-filter_complex",
+    //   "[0:v]split=4[v1080][v720][v480][v240];" +
+    //   "[v1080]scale=1920:1080[v1080out];" +
+    //   "[v720]scale=1280:720[v720out];" +
+    //   "[v480]scale=854:480[v480out];" +
+    //   "[v240]scale=426:240[v240out]",
+    //   "-map", "[v1080out]",
+    //   "-map", "[v720out]",
+    //   "-map", "[v480out]",
+    //   "-map", "[v240out]",
+    //   "-map", "0:a",
+    //   "-c:v", "libx264",
+    //   "-c:a", "aac",
+    //   "-ar", "48000",
+    //   "-b:v:0", "5000k",
+    //   "-b:v:1", "2800k",
+    //   "-b:v:2", "1400k",
+    //   "-b:v:3", "400k",
+    //   "-b:a:0", "192k",
+    //   "-f", "hls",
+    //   "-hls_time", "6",
+    //   "-hls_playlist_type", "vod",
+    //   "-hls_flags", "independent_segments",
+    //   "-hls_segment_filename", outputDir.resolve("stream_%v/segment_%03d.ts").toString(),
+    //   "-master_pl_name", "master.m3u8",
+    //   "-var_stream_map", "v:0 v:1 v:2 v:3 a:0",
+    //   outputDir.resolve("stream_%v/playlist.m3u8").toString()
+    // );
+
+    // WHEN GPU IS AVAILABLE
     List<String> command = List.of(
       "ffmpeg",
       "-y",
-      "-threads", "0", // FFmpeg automatically chooses the number of threads
+      "-hwaccel", "cuda",           // Use GPU for decoding too
+      "-hwaccel_output_format", "cuda",
       "-i", input.toString(),
       "-filter_complex",
-      "[0:v]split=4[v1080][v720][v480][v240];" +
-      "[v1080]scale=1920:1080[v1080out];" +
-      "[v720]scale=1280:720[v720out];" +
-      "[v480]scale=854:480[v480out];" +
-      "[v240]scale=426:240[v240out]",
-      "-map", "[v1080out]", "-map", "0:a",
-      "-map", "[v720out]", "-map", "0:a",
-      "-map", "[v480out]", "-map", "0:a",
-      "-map", "[v240out]", "-map", "0:a",
-      "-c:v", "libx264",
+      "[0:v]split=2[v720][v480];" +
+      "[v720]scale_cuda=1280:720[v720out];" +    // GPU scaling
+      "[v480]scale_cuda=854:480[v480out]",        // GPU scaling
+      "-map", "[v720out]",
+      "-map", "[v480out]",
+      "-map", "0:a",
+      "-c:v", "h264_nvenc",         // NVIDIA GPU encoder
+      "-preset", "p4",              // Balanced quality/speed
       "-c:a", "aac",
       "-ar", "48000",
-      "-b:v:0", "5000k",
-      "-b:v:1", "2800k",
-      "-b:v:2", "1400k",
-      "-b:v:3", "400k",
-      "-f", "hls", // Output format HTTP Live Streaming, widely-used for adaptive bitrate streaming
-      "-hls_time", "6",
+      "-b:v:0", "2800k",
+      "-b:v:1", "1400k",
+      "-b:a:0", "128k",
+      "-f", "hls",
+      "-hls_time", "10",
       "-hls_playlist_type", "vod",
       "-hls_flags", "independent_segments",
-      "-hls_segment_filename",
-      outputDir.resolve("out_%v/segment_%03d.ts").toString(), // The video chunks (of corresponding stream)
-      "-master_pl_name", "master.m3u8", // master.m3u8 tells which streams are available
-      "-var_stream_map",
-      "v:0,a:0,name:1080p v:1,a:0,name:720p v:2,a:0,name:480p v:3,a:0,name:240p",
-      outputDir.resolve("out_%v/index.m3u8").toString() // .m3u8 for particular stream
+      "-hls_segment_filename", outputDir.resolve("stream_%v/segment_%03d.ts").toString(),
+      "-master_pl_name", "master.m3u8",
+      "-var_stream_map", "v:0 v:1 a:0",
+      outputDir.resolve("stream_%v/playlist.m3u8").toString()
     );
 
     ProcessBuilder pb = new ProcessBuilder(command);
