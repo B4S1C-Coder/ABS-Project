@@ -7,13 +7,17 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.b4s1ccoder.common.dto.InitiateMultipartUploadDTO;
 import com.b4s1ccoder.common.dto.InitiateMultipartUploadResponseDTO;
 import com.b4s1ccoder.common.dto.PartDTO;
 import com.b4s1ccoder.common.dto.VideoUploadDTO;
+import com.b4s1ccoder.common.enums.VideoStatus;
 import com.b4s1ccoder.upload_service.mapper.VideoMapper;
 import com.b4s1ccoder.upload_service.model.Video;
+import com.b4s1ccoder.upload_service.model.VideoProcessingJob;
+import com.b4s1ccoder.upload_service.repository.VideoProcessingJobRepository;
 import com.b4s1ccoder.upload_service.repository.VideoRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -37,16 +41,26 @@ public class VideoService {
   private final S3Client s3Client;
   private final S3Presigner s3Presigner;
   private final VideoRepository videoRepository;
+  private final VideoProcessingJobRepository videoProcessingJobRepository;
 
   @Value("${spring.cloud.aws.s3.bucket-name}")
   private String bucketName;
 
-  // Standard PUT Upload, only works for files < 5GB
+  // Standard PUT Upload, only works for files < 5GB, deprecated do not use
+  @Deprecated
+  @Transactional
   public String initiateUpload(VideoUploadDTO req) {
     String key = UUID.randomUUID().toString() + "-" + req.getFilename();
     
     Video video = VideoMapper.toVideoObj(key, req);
-    videoRepository.save(video);
+    Video savedVideo = videoRepository.save(video);
+
+    VideoProcessingJob job = VideoProcessingJob.builder()
+      .video(savedVideo)
+      .status(VideoStatus.UPLOADING)
+    .build();
+
+    videoProcessingJobRepository.save(job);
 
     PutObjectRequest objectRequest = PutObjectRequest.builder()
       .bucket(bucketName)
@@ -63,11 +77,19 @@ public class VideoService {
   }
 
   // Inititate Multipart Upload
+  @Transactional
   public InitiateMultipartUploadResponseDTO initiateMultipartUpload(InitiateMultipartUploadDTO req) {
     String key = UUID.randomUUID().toString() + "-" + req.getFilename();
 
     Video video = VideoMapper.toVideoObj(key, req);
-    videoRepository.save(video);
+    Video savedVideo = videoRepository.save(video);
+
+    VideoProcessingJob job = VideoProcessingJob.builder()
+      .video(savedVideo)
+      .status(VideoStatus.UPLOADING)
+    .build();
+
+    videoProcessingJobRepository.save(job);
 
     // Create the multipart request and inform s3 to prepare for an incoming multipart upload
     CreateMultipartUploadRequest createRequest = CreateMultipartUploadRequest.builder()
@@ -99,6 +121,7 @@ public class VideoService {
   }
 
   // All chunks uploaded, stich em all
+  @Transactional
   public void completeUpload(String key, String uploadId, List<PartDTO> parts) {
     List<CompletedPart> completedParts = parts.stream()
       .map(
@@ -124,5 +147,18 @@ public class VideoService {
     // After this, s3 stiches all the chunks to get the large raw video file.
     // Then s3 pushes a message to SQS, which will then be pulled by a
     // video processing worker which, raw video -> 1080p, 720p, 480p
+
+    Video video = videoRepository.findByS3Key(key).orElseThrow(
+      () -> new IllegalStateException("Video is missing.")
+    );
+
+    VideoProcessingJob job = videoProcessingJobRepository.findByVideoIdAndStatus(
+      video.getId(), VideoStatus.UPLOADING
+    ).orElseThrow(
+      () -> new IllegalStateException("Job is missing.")
+    );
+
+    job.setStatus(VideoStatus.PENDING);
+    videoProcessingJobRepository.save(job);
   }
 }

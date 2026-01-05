@@ -1,0 +1,1 @@
+In video processing service, in process(...) make the claim logic better by accounting for Status PROCESSING as well to claim failed jobs.

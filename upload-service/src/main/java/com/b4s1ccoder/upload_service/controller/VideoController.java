@@ -13,14 +13,14 @@ import com.b4s1ccoder.common.dto.InitiateMultipartUploadDTO;
 import com.b4s1ccoder.common.dto.InitiateMultipartUploadResponseDTO;
 import com.b4s1ccoder.common.dto.IntermediateMultipartUploadDTO;
 import com.b4s1ccoder.common.dto.PreSignedUploadUrlDTO;
-import com.b4s1ccoder.common.dto.VideoUploadDTO;
+// import com.b4s1ccoder.common.dto.VideoUploadDTO;
 import com.b4s1ccoder.upload_service.service.VideoService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping(value = "/internal/uploads") // path: /internal/v1.0/uploads
+@RequestMapping(value = "/internal/uploads")
 @RequiredArgsConstructor
 public class VideoController {
 
@@ -31,13 +31,13 @@ public class VideoController {
     return ResponseEntity.ok("Upload service is up and running.");
   }
 
-  @PostMapping("/initiate-single")
-  public ResponseEntity<PreSignedUploadUrlDTO> initiateUploadSimple(@Valid @RequestBody VideoUploadDTO req) {
-    String presignedUrl = videoService.initiateUpload(req);
-    return ResponseEntity
-      .status(HttpStatus.CREATED)
-      .body(new PreSignedUploadUrlDTO(presignedUrl));
-  }
+  // @PostMapping("/initiate-single")
+  // public ResponseEntity<PreSignedUploadUrlDTO> initiateUploadSimple(@Valid @RequestBody VideoUploadDTO req) {
+  //   String presignedUrl = videoService.initiateUpload(req);
+  //   return ResponseEntity
+  //     .status(HttpStatus.CREATED)
+  //     .body(new PreSignedUploadUrlDTO(presignedUrl));
+  // }
 
   @PostMapping("/initiate")
   public ResponseEntity<InitiateMultipartUploadResponseDTO> initiateUploadMultipart(

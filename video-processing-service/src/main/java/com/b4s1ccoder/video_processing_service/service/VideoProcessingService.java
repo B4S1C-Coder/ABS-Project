@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 
@@ -13,9 +14,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.b4s1ccoder.common.enums.VideoStatus;
+import com.b4s1ccoder.video_processing_service.config.WorkerId;
 import com.b4s1ccoder.video_processing_service.health.WorkerState;
 import com.b4s1ccoder.video_processing_service.model.Video;
+import com.b4s1ccoder.video_processing_service.model.VideoProcessingJob;
+import com.b4s1ccoder.video_processing_service.repository.VideoProcessingJobRepository;
 import com.b4s1ccoder.video_processing_service.repository.VideoRepository;
+import com.b4s1ccoder.video_processing_service.state.CurrentJobHolder;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +36,9 @@ public class VideoProcessingService {
   private final S3Client s3Client;
   private final WorkerState workerState;
   private final VideoRepository videoRepository;
+  private final VideoProcessingJobRepository videoProcessingJobRepository;
+  private final WorkerId workerId;
+  private final CurrentJobHolder currentJobHolder;
 
   @Value("${app.buckets.raw}")
   private String rawBucket;
@@ -40,16 +48,27 @@ public class VideoProcessingService {
 
   @Transactional
   public void process(String bucket, String key) throws Exception {
-    Video video = videoRepository.findByS3Key(key)
-      .orElseThrow(() -> new IllegalStateException(
-        "No video found for s3Key = " + key
-      ));
+    Video video = videoRepository.findByS3Key(key).orElseThrow(
+      () -> new IllegalStateException("No video found for s3Key = " + key)
+    );
 
+    VideoProcessingJob job = videoProcessingJobRepository
+      .findByVideoIdAndStatus(video.getId(), VideoStatus.PENDING)
+      .orElseThrow(
+        () -> new IllegalStateException("No job found for s3Key = " + key)
+      );
+    
+    job.setWorkerId(workerId.getId());
+    job.setLeaseUntil(LocalDateTime.now());
+
+    job = videoProcessingJobRepository.save(job);
+
+    currentJobHolder.set(job.getId());
     workerState.markWorking(key);
 
     try {
-      video.setStatus(VideoStatus.PROCESSING);
-      videoRepository.save(video);
+      job.setStatus(VideoStatus.PROCESSING);
+      job = videoProcessingJobRepository.save(job);
 
       Path input = download(bucket, key);
       Path outputDir = Files.createTempDirectory("hls-");
@@ -58,17 +77,19 @@ public class VideoProcessingService {
       uploadToS3(outputDir, key);
       cleanup(input, outputDir);
 
-      video.setStatus(VideoStatus.READY);
-      videoRepository.save(video);
+      job.setStatus(VideoStatus.READY);
+      job = videoProcessingJobRepository.save(job);
+
     } catch (Exception e) {
       log.error("Video processing failed for {}", key, e);
 
-      video.setStatus(VideoStatus.FAILED);
-      videoRepository.save(video);
+      job.setStatus(VideoStatus.FAILED);
+      videoProcessingJobRepository.save(job);
 
       throw e;
     } finally {
       workerState.markIdle();
+      currentJobHolder.clear();
     }
   }
 

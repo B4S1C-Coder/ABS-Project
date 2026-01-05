@@ -32,7 +32,7 @@ public class SqsPollingWorker {
         .queueUrl(queueResolver.processingQueueUrl())
         .maxNumberOfMessages(1)
         .waitTimeSeconds(10)
-        .visibilityTimeout(3600)
+        .visibilityTimeout(30) // 15 minutes --> 900
       .build()
     );
 
@@ -43,32 +43,40 @@ public class SqsPollingWorker {
     Message message = response.messages().getFirst();
 
     try {
-      handleMessage(message);
-
-      sqsClient.deleteMessage(
-        DeleteMessageRequest.builder()
-          .queueUrl(queueResolver.processingQueueUrl())
-          .receiptHandle(message.receiptHandle())
-        .build()
-      );
+      boolean processed = handleMessage(message);
+      
+      if (processed) {
+        sqsClient.deleteMessage(
+          DeleteMessageRequest.builder()
+            .queueUrl(queueResolver.processingQueueUrl())
+            .receiptHandle(message.receiptHandle())
+          .build()
+        );
+      }
     } catch (Exception e) {
       log.error("Message processing failed.", e);
     }
   }
 
-  private void handleMessage(Message message) throws Exception {
+  private boolean handleMessage(Message message) throws Exception {
     JsonNode root = objectMapper.readTree(message.body());
 
     if (root.has("Event") && "s3:TestEvent".equals(root.get("Event").asText())) {
       log.info("Test s3 event ignored.");
-      return;
+      return true;
     }
 
     JsonNode record = root.get("Records").get(0);
     String bucket = record.get("s3").get("bucket").get("name").asText();
     String key = record.get("s3").get("object").get("key").asText();
 
-    log.info("Processing s3://{}/{}", bucket, key);
-    processingService.process(bucket, key);
+    log.info("Discovered s3://{}/{}", bucket, key);
+    try {
+      processingService.process(bucket, key);
+      return true;
+    } catch (IllegalStateException e) {
+      log.info("Skipping {} (job not claimable): {}", key, e.getMessage());
+      return true;
+    }
   }
 }

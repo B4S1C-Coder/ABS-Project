@@ -6,12 +6,8 @@ import java.util.UUID;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import com.b4s1ccoder.common.enums.VideoStatus;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -41,13 +37,8 @@ public class Video {
   @Column(name = "original_filename")
   private String originalFilename;
 
-  @Column(name = "s3_key", nullable = false)
+  @Column(name = "s3_key", nullable = false, unique = true)
   private String s3Key;
-
-  @Enumerated(EnumType.STRING)
-  @Column(name = "status", nullable = false)
-  @Builder.Default
-  private VideoStatus status = VideoStatus.UPLOADING;
 
   @CreationTimestamp
   @Column(name = "created_at", updatable = false)
