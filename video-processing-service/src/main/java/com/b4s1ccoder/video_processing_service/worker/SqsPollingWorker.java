@@ -72,8 +72,11 @@ public class SqsPollingWorker {
 
     log.info("Discovered s3://{}/{}", bucket, key);
     try {
-      processingService.process(bucket, key);
-      return true;
+      boolean claimed = processingService.process(bucket, key);
+      if (!claimed) {
+        log.info("Job not claimed, leaving SQS Message as it is ...");
+      }
+      return claimed;
     } catch (IllegalStateException e) {
       log.info("Skipping {} (job not claimable): {}", key, e.getMessage());
       return true;

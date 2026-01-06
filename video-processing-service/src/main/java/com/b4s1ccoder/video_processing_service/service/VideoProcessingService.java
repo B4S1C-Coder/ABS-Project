@@ -46,8 +46,9 @@ public class VideoProcessingService {
   @Value("${app.buckets.streams}")
   private String streamsBucket;
 
+  // Boolean return indicates whether job was actually claimed or not
   @Transactional
-  public void process(String bucket, String key) throws Exception {
+  public boolean process(String bucket, String key) throws Exception {
     Video video = videoRepository.findByS3Key(key).orElseThrow(
       () -> new IllegalStateException("No video found for s3Key = " + key)
     );
@@ -72,7 +73,7 @@ public class VideoProcessingService {
 
     if (!claimed) {
       log.info("Job {} already claimed, skipping ...", job.getId());
-      return;
+      return false;
     }
     
     // job.setWorkerId(workerId.getId());
@@ -96,6 +97,8 @@ public class VideoProcessingService {
 
       job.setStatus(VideoStatus.READY);
       job = videoProcessingJobRepository.save(job);
+
+      return true;
 
     } catch (Exception e) {
       log.error("Video processing failed for {}", key, e);

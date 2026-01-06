@@ -38,3 +38,5 @@ app:
   buckets:
     raw: raw-video-bucket
     streams: streams-bucket
+server:
+  port: 20009
