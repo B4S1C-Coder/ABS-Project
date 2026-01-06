@@ -52,23 +52,40 @@ public class VideoProcessingService {
       () -> new IllegalStateException("No video found for s3Key = " + key)
     );
 
+    // VideoProcessingJob job = videoProcessingJobRepository
+    //   .findByVideoIdAndStatus(video.getId(), VideoStatus.PENDING)
+    //   .orElseThrow(
+    //     () -> new IllegalStateException("No job found for s3Key = " + key)
+    //   );
+    
     VideoProcessingJob job = videoProcessingJobRepository
-      .findByVideoIdAndStatus(video.getId(), VideoStatus.PENDING)
-      .orElseThrow(
+      .findByVideoId(video.getId()).orElseThrow(
         () -> new IllegalStateException("No job found for s3Key = " + key)
       );
     
-    job.setWorkerId(workerId.getId());
-    job.setLeaseUntil(LocalDateTime.now());
+    // Job claiming moved to DB layer (lease extension also at DB layer)
+    // As DB is the source of truth and authoritative regarding who owns
+    // what job
+    boolean claimed = videoProcessingJobRepository.claimJob(
+      job.getId(), workerId.getId(), LocalDateTime.now().plusMinutes(10)
+    );
 
-    job = videoProcessingJobRepository.save(job);
+    if (!claimed) {
+      log.info("Job {} already claimed, skipping ...", job.getId());
+      return;
+    }
+    
+    // job.setWorkerId(workerId.getId());
+    // job.setLeaseUntil(LocalDateTime.now());
+
+    // job = videoProcessingJobRepository.save(job);
 
     currentJobHolder.set(job.getId());
     workerState.markWorking(key);
 
     try {
-      job.setStatus(VideoStatus.PROCESSING);
-      job = videoProcessingJobRepository.save(job);
+      // job.setStatus(VideoStatus.PROCESSING);
+      // job = videoProcessingJobRepository.save(job);
 
       Path input = download(bucket, key);
       Path outputDir = Files.createTempDirectory("hls-");

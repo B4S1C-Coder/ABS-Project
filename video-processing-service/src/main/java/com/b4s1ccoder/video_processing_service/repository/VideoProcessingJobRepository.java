@@ -33,4 +33,14 @@ public interface VideoProcessingJobRepository
     @Param("workerId") String workerId,
     @Param("leaseUntil") LocalDateTime leaseUntil
   );
+
+  @Query(
+    value = "SELECT claim_video_processing_job(:jobId, :workerId, :leaseUntil)",
+    nativeQuery = true
+  )
+  boolean claimJob(
+    @Param("jobId") UUID jobId,
+    @Param("workerId") String workerId,
+    @Param("leaseUntil") LocalDateTime leaseUntil
+  );
 }
