@@ -8,7 +8,9 @@ services:
     ports:
       - "4566:4566"
     environment:
-      - SERVICES=s3,sqs
+      - SERVICES=s3,sqs,cloudfront
+      - DEBUG=1
+      - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
       - "../localstack-init:/etc/localstack/init/ready.d"
     networks:

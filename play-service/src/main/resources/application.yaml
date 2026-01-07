@@ -1,3 +1,20 @@
 spring:
   application:
     name: play-service
+  cloud:
+    aws:
+      credentials:
+        access-key: test
+        secret-key: test
+      region:
+        static: us-east-1
+      ssm:
+        endpoint: http://localhost:4566
+      s3:
+        endpoint: http://localhost:4566
+
+app:
+  cdn:
+    use-cdn: true
+  buckets:
+    streams: streams-bucket

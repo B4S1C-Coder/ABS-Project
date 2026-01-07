@@ -26,3 +26,19 @@ awslocal s3api put-bucket-notification-configuration \
   }'
 
 echo "Finished setting up Raw Video Bucket Notifications ..."
+
+# Create CloudFront CDN for distribution
+DISTRIBUTION_ID=$(awslocal cloudfront create-distribution \
+  --origin-domain-name streams-bucket.s3.localhost.localstack.cloud:4566 \
+  --defualt-root-object index.html \
+  --query 'Distribution.Id' \
+  --output text)
+
+echo "CloudFront Distribution Created: $DISTRIBUTION_ID"
+
+# Store this ID in SSM Parameter Store so Play Service can use it
+awslocal ssm put-parameter \
+  --name "/app/cloudfront-distribution-id" \
+  --value "$DISTRIBUTION_ID" \
+  --type String \
+  --overwrite
