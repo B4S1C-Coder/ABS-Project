@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.b4s1ccoder.common.enums.VideoStatus;
+import com.b4s1ccoder.video_processing_service.config.VideoEncodingConfig;
+import com.b4s1ccoder.video_processing_service.config.VideoSegmentConfig;
 import com.b4s1ccoder.video_processing_service.config.WorkerId;
 import com.b4s1ccoder.video_processing_service.health.WorkerState;
 import com.b4s1ccoder.video_processing_service.model.Video;
@@ -39,6 +41,139 @@ public class VideoProcessingService {
   private final VideoProcessingJobRepository videoProcessingJobRepository;
   private final WorkerId workerId;
   private final CurrentJobHolder currentJobHolder;
+  private final VideoEncodingConfig encodingConfig;
+  private final VideoSegmentConfig segmentConfig;
+
+  // Will be determined if GPU is available or not, decision is cached
+  private Boolean useGpu = null;
+
+  private List<String> buildFfmpegCommand(Path input, Path outputDir) {
+    if (useGpu == null) {
+      useGpu = determineEncodingMode();
+    }
+
+    if (useGpu) {
+      log.info("Using GPU-accelerated encoding (NVENC)");
+      return buildGpuCommand(input, outputDir);
+    } else {
+      log.info("Using CPU encoding (libx264)");
+      return buildCpuCommand(input, outputDir);
+    }
+  }
+
+  // FOR SIMPLICITY I AM ONLY CONSIDERING NVIDIA GPUs, SINCE THAT IS WHAT
+  // MY LAPTOP HAS
+  private boolean determineEncodingMode() {
+    String mode = encodingConfig.getMode().toLowerCase();
+
+    // Check if NVENC is available
+    boolean nvencAvailable = false;
+    try {
+      ProcessBuilder pb = new ProcessBuilder("ffmpeg", "-encoders");
+      Process process = pb.start();
+
+      try (BufferedReader reader = new BufferedReader(
+        new InputStreamReader(process.getInputStream())
+      )) {
+        nvencAvailable = reader.lines().anyMatch(
+          line -> line.contains("h264_nvenc")
+        );
+      }
+
+    } catch (IOException e) {
+      log.error("Failed to check for NVENC: {}", e.getMessage());
+    }
+
+    // Consider the provided configs
+    boolean shouldUseGpu = switch (mode) {
+      case "gpu" -> {
+        if (!nvencAvailable) {
+          log.warn("GPU mode is set but NVENC not available, will use CPU");
+        }
+        yield nvencAvailable;
+      }
+      case "cpu" -> false;
+      default -> nvencAvailable;
+    };
+
+    log.info("Encoding mode determined: {} (NVENC available: {})", 
+                 shouldUseGpu ? "GPU" : "CPU", nvencAvailable);
+    return shouldUseGpu;
+  }
+
+  private List<String> buildGpuCommand(Path input, Path outputDir) {
+    return List.of(
+      "ffmpeg",
+      "-y",
+      "-hwaccel", "cuda",
+      "-hwaccel_output_format", "cuda",
+      "-i", input.toString(),
+      "-filter_complex",
+      "[0:v]split=4[v1080][v720][v480][v240];" +
+      "[v1080]scale_cuda=1920:1080[v1080out];" +
+      "[v720]scale_cuda=1280:720[v720out];" +
+      "[v480]scale_cuda=854:480[v480out];" +
+      "[v240]scale_cuda=426:240[v240out]",
+      "-map", "[v1080out]",
+      "-map", "[v720out]",
+      "-map", "[v480out]",
+      "-map", "[v240out]",
+      "-map", "0:a",
+      "-c:v", "h264_nvenc",
+      "-preset", encodingConfig.getPreset().getGpu(),
+      "-c:a", "aac",
+      "-ar", "48000",
+      "-b:v:0", "5000k",
+      "-b:v:1", "2800k",
+      "-b:v:2", "1400k",
+      "-b:v:3", "400k",
+      "-b:a:0", "192k",
+      "-f", "hls",
+      "-hls_time", String.valueOf(segmentConfig.getDuration()),
+      "-hls_playlist_type", "vod",
+      "-hls_flags", "independent_segments",
+      "-hls_segment_filename", outputDir.resolve("stream_%v/segment_%03d.ts").toString(),
+      "-master_pl_name", "master.m3u8",
+      "-var_stream_map", "v:0 v:1 v:2 v:3 a:0",
+      outputDir.resolve("stream_%v/playlist.m3u8").toString()
+    );
+  }
+    
+  private List<String> buildCpuCommand(Path input, Path outputDir) {
+    return List.of(
+      "ffmpeg",
+      "-y",
+      "-i", input.toString(),
+      "-filter_complex",
+      "[0:v]split=4[v1080][v720][v480][v240];" +
+      "[v1080]scale=1920:1080[v1080out];" +
+      "[v720]scale=1280:720[v720out];" +
+      "[v480]scale=854:480[v480out];" +
+      "[v240]scale=426:240[v240out]",
+      "-map", "[v1080out]",
+      "-map", "[v720out]",
+      "-map", "[v480out]",
+      "-map", "[v240out]",
+      "-map", "0:a",
+      "-c:v", "libx264",
+      "-preset", encodingConfig.getPreset().getCpu(),
+      "-c:a", "aac",
+      "-ar", "48000",
+      "-b:v:0", "5000k",
+      "-b:v:1", "2800k",
+      "-b:v:2", "1400k",
+      "-b:v:3", "400k",
+      "-b:a:0", "192k",
+      "-f", "hls",
+      "-hls_time", String.valueOf(segmentConfig.getDuration()),
+      "-hls_playlist_type", "vod",
+      "-hls_flags", "independent_segments",
+      "-hls_segment_filename", outputDir.resolve("stream_%v/segment_%03d.ts").toString(),
+      "-master_pl_name", "master.m3u8",
+      "-var_stream_map", "v:0 v:1 v:2 v:3 a:0",
+      outputDir.resolve("stream_%v/playlist.m3u8").toString()
+    );
+  }
 
   @Value("${app.buckets.raw}")
   private String rawBucket;
@@ -52,12 +187,6 @@ public class VideoProcessingService {
     Video video = videoRepository.findByS3Key(key).orElseThrow(
       () -> new IllegalStateException("No video found for s3Key = " + key)
     );
-
-    // VideoProcessingJob job = videoProcessingJobRepository
-    //   .findByVideoIdAndStatus(video.getId(), VideoStatus.PENDING)
-    //   .orElseThrow(
-    //     () -> new IllegalStateException("No job found for s3Key = " + key)
-    //   );
     
     VideoProcessingJob job = videoProcessingJobRepository
       .findByVideoId(video.getId()).orElseThrow(
@@ -76,18 +205,10 @@ public class VideoProcessingService {
       return false;
     }
     
-    // job.setWorkerId(workerId.getId());
-    // job.setLeaseUntil(LocalDateTime.now());
-
-    // job = videoProcessingJobRepository.save(job);
-
     currentJobHolder.set(job.getId());
     workerState.markWorking(key);
 
     try {
-      // job.setStatus(VideoStatus.PROCESSING);
-      // job = videoProcessingJobRepository.save(job);
-
       Path input = download(bucket, key);
       Path outputDir = Files.createTempDirectory("hls-");
 
@@ -136,88 +257,27 @@ public class VideoProcessingService {
     // video processing work on CPU Threads, rather than using a Java wrapper that might
     // do this work on Java threads.
 
-    // Moreover, it is easier for me to lookup an FFmpeg command than to learn the wrapper's API
-    // the goal of this project is to learn about and creating a video processing pipeline used
-    // in Streaming Platforms like Netflix, Prime Video, JioHotstar etc. NOT the actual conversion
-    // process itself.
+    // Moreover, it is easier for me to lookup an FFmpeg command than to learn the 
+    // wrapper's API the goal of this project is to learn about and creating a video
+    // processing pipeline used in Streaming Platforms like Netflix, Prime Video,
+    // JioHotstar etc. NOT the actual conversion process itself.
 
     // The FFmpeg command that: raw video -> FFmpeg -> 1080p, 720p, 480p, 240p
-
-    // WORKS
-    // List<String> command = List.of(
-    //   "ffmpeg",
-    //   "-y",
-    //   "-i", input.toString(),
-    //   "-filter_complex",
-    //   "[0:v]split=4[v1080][v720][v480][v240];" +
-    //   "[v1080]scale=1920:1080[v1080out];" +
-    //   "[v720]scale=1280:720[v720out];" +
-    //   "[v480]scale=854:480[v480out];" +
-    //   "[v240]scale=426:240[v240out]",
-    //   "-map", "[v1080out]",
-    //   "-map", "[v720out]",
-    //   "-map", "[v480out]",
-    //   "-map", "[v240out]",
-    //   "-map", "0:a",
-    //   "-c:v", "libx264",
-    //   "-c:a", "aac",
-    //   "-ar", "48000",
-    //   "-b:v:0", "5000k",
-    //   "-b:v:1", "2800k",
-    //   "-b:v:2", "1400k",
-    //   "-b:v:3", "400k",
-    //   "-b:a:0", "192k",
-    //   "-f", "hls",
-    //   "-hls_time", "6",
-    //   "-hls_playlist_type", "vod",
-    //   "-hls_flags", "independent_segments",
-    //   "-hls_segment_filename", outputDir.resolve("stream_%v/segment_%03d.ts").toString(),
-    //   "-master_pl_name", "master.m3u8",
-    //   "-var_stream_map", "v:0 v:1 v:2 v:3 a:0",
-    //   outputDir.resolve("stream_%v/playlist.m3u8").toString()
-    // );
-
-    // WHEN GPU IS AVAILABLE
-    List<String> command = List.of(
-      "ffmpeg",
-      "-y",
-      "-hwaccel", "cuda",           // Use GPU for decoding too
-      "-hwaccel_output_format", "cuda",
-      "-i", input.toString(),
-      "-filter_complex",
-      "[0:v]split=2[v720][v480];" +
-      "[v720]scale_cuda=1280:720[v720out];" +    // GPU scaling
-      "[v480]scale_cuda=854:480[v480out]",        // GPU scaling
-      "-map", "[v720out]",
-      "-map", "[v480out]",
-      "-map", "0:a",
-      "-c:v", "h264_nvenc",         // NVIDIA GPU encoder
-      "-preset", "p4",              // Balanced quality/speed
-      "-c:a", "aac",
-      "-ar", "48000",
-      "-b:v:0", "2800k",
-      "-b:v:1", "1400k",
-      "-b:a:0", "128k",
-      "-f", "hls",
-      "-hls_time", "10",
-      "-hls_playlist_type", "vod",
-      "-hls_flags", "independent_segments",
-      "-hls_segment_filename", outputDir.resolve("stream_%v/segment_%03d.ts").toString(),
-      "-master_pl_name", "master.m3u8",
-      "-var_stream_map", "v:0 v:1 a:0",
-      outputDir.resolve("stream_%v/playlist.m3u8").toString()
-    );
+    List<String> command = buildFfmpegCommand(input, outputDir);
 
     ProcessBuilder pb = new ProcessBuilder(command);
     pb.redirectErrorStream(true);
 
     Process process = pb.start();
 
-    try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+    try (BufferedReader reader = new BufferedReader(
+      new InputStreamReader(process.getInputStream())
+    )) {
       reader.lines().forEach(log::info); // Log, whatever FFmpeg outputs
     }
 
     int exitCode = process.waitFor();
+
     // If FFmpeg fails
     if (exitCode != 0) {
       throw new IllegalStateException("FFmpeg failed with exit code: " + exitCode);
@@ -238,6 +298,9 @@ public class VideoProcessingService {
   private void uploadToS3(Path outputDir, String originalKey) throws IOException {
     String videoId = originalKey.substring(0, originalKey.lastIndexOf('.'));
 
+    // A regular file is a file that is not a directory or a special type of file
+    // such as a symbolic link, pipe, socket, or device. It typically stores opaque
+    // content (a sequence of bytes). 
     Files.walk(outputDir)
       .filter(Files::isRegularFile)
       .forEach(file -> {

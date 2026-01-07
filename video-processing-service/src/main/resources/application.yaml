@@ -40,3 +40,11 @@ app:
     streams: streams-bucket
 server:
   port: 20009
+video:
+  encoding:
+    mode: auto # auto, gpu, cpu
+    preset:
+      gpu: p4 # p1-p7
+      cpu: faster # ultrafast to veryslow
+  segment:
+    duration: 10
