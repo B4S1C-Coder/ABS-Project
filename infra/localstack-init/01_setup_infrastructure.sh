@@ -28,11 +28,14 @@ awslocal s3api put-bucket-notification-configuration \
 echo "Finished setting up Raw Video Bucket Notifications ..."
 
 # Create CloudFront CDN for distribution
-DISTRIBUTION_ID=$(awslocal cloudfront create-distribution \
-  --origin-domain-name streams-bucket.s3.localhost.localstack.cloud:4566 \
-  --default-root-object index.html \
-  --query 'Distribution.Id' \
-  --output text)
+# DISTRIBUTION_ID=$(awslocal cloudfront create-distribution \
+#   --origin-domain-name streams-bucket.s3.localhost.localstack.cloud:4566 \
+#   --default-root-object index.html \
+#   --query 'Distribution.Id' \
+#   --output text)
+
+# Temporary dummy ID, just to simulate a CDN
+DISTRIBUTION_ID="E3ABCDEFG"
 
 echo "CloudFront Distribution Created: $DISTRIBUTION_ID"
 

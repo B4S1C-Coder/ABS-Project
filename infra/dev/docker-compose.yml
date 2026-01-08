@@ -25,3 +25,15 @@ services:
       - "../env/metadata.postgres.env"
     networks:
       - streaming-platform-network
+  
+  local-cdn:
+    image: ngnix:alpine
+    container_name:local-cdn
+    volumes:
+      - "../ngnix/ngnix.conf:/etc/ngnix/ngnix.conf:ro"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - localstack
+    networks:
+     - streaming-platform-network
