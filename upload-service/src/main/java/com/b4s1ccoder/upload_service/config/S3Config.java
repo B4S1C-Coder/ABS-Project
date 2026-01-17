@@ -27,6 +27,9 @@ public class S3Config {
   @Value("${spring.cloud.aws.region.static}")
   private String region;
 
+  @Value("${app.s3.external-endpoint}")
+  private String externalEndpoint;
+
   @Bean
   public S3Client s3Client() {
     return S3Client.builder()
@@ -47,7 +50,7 @@ public class S3Config {
   public S3Presigner s3Presigner() {
     return S3Presigner.builder()
       .region(Region.of(region))
-      .endpointOverride(URI.create(endpoint))
+      .endpointOverride(URI.create(externalEndpoint))
       .credentialsProvider(
         StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey))
       )

@@ -16,12 +16,16 @@ services:
       - "../localstack-init:/etc/localstack/init/ready.d"
     networks:
       - streaming-platform-network
+    healthcheck:
+      test: ["CMD", "awslocal", "sqs", "list-queues"]
+      interval: 5s
+      retries: 10
   
   metadata-db:
     image: postgres:latest
     container_name: metadata-db
-    ports:
-      - "5001:5432"
+    # ports:
+    #   - "5001:5432"
     env_file:
       - "../env/metadata.postgres.env"
     networks:
@@ -42,8 +46,8 @@ services:
   sp-upload-service:
     image: sp-upload-service
     container_name: sp-upload-service
-    ports:
-      - "20001:20001"
+    # ports:
+    #   - "20001:20001"
     env_file:
       - "../env/upload.service.env"
     depends_on:
@@ -55,8 +59,8 @@ services:
   sp-play-service:
     image: sp-play-service
     container_name: sp-play-service
-    ports:
-      - "20020:20020"
+    # ports:
+    #   - "20020:20020"
     env_file:
       - "../env/play.service.env"
     depends_on:
@@ -68,12 +72,23 @@ services:
   sp-video-processing-service:
     image: sp-video-processing-service
     container_name: sp-video-processing-service
-    ports:
-      - "20009:20009"
+    runtime: nvidia
+    # ports:
+    #   - "20009:20009"
     env_file:
       - "../env/video.service.env"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
     depends_on:
-      - localstack
-      - metadata-db
+      localstack:
+        condition: service_healthy
+      metadata-db:
+        condition: service_started
     networks:
       - streaming-platform-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]

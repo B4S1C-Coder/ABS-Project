@@ -29,9 +29,14 @@ spring:
         secret-key: ${SECRET_KEY:test}
       region:
         static: ${REGION:us-east-1}
+
 server:
   port: 20001
-  
+
+app:
+  s3:
+    external-endpoint: ${S3_EXTERNAL_ENDPOINT:http://localhost:4566}
+
 logging:
   level:
     org:
