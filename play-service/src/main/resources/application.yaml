@@ -7,14 +7,14 @@ spring:
   cloud:
     aws:
       credentials:
-        access-key: test
-        secret-key: test
+        access-key: ${ACCESS_KEY:test}
+        secret-key: ${SECRET_KEY:test}
       region:
-        static: us-east-1
+        static: ${REGION:us-east-1}
       ssm:
-        endpoint: http://localhost:4566
+        endpoint: ${SSM_ENDPOINT:http://localhost:4566}
       s3:
-        endpoint: http://localhost:4566
+        endpoint: ${S3_ENDPOINT:http://localhost:4566}
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5001}/${DB_NAME:metadata_db}
     username: ${DB_USERNAME:db_user}
@@ -31,9 +31,16 @@ spring:
 app:
   cdn:
     enabled: true
-    base-url: http://localhost:8080
+    base-url: ${BASE_URL:http://localhost:8080}
   buckets:
-    streams: streams-bucket
+    streams: ${STREAMS_BUCKET:streams-bucket}
 
 server:
   port: 20020
+
+logging:
+  level:
+    org:
+      springframework:
+        security: ${SECURITY_LOG_LEVEL:DEBUG}
+        web: ${APP_LOG_LEVEL:INFO}

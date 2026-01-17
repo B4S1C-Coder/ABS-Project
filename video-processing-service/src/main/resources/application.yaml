@@ -8,20 +8,20 @@ spring:
   cloud:
     aws:
       s3:
-        endpoint: http://localhost:4566
+        endpoint: ${S3_ENDPOINT:http://localhost:4566}
         path-style-access-enabled: true
       sqs:
-        endpoint: http://localhost:4566
-        region: us-east-1
+        endpoint: ${SQS_ENDPOINT:http://localhost:4566}
+        region: ${REGION:us-east-1}
         listener:
           concurrency: 1
           max-messages-per-poll: 1
           visibility-timeout: 3600
       credentials:
-        access-key: test
-        secret-key: test
+        access-key: ${ACCESS_KEY:test}
+        secret-key: ${SECRET_KEY:test}
       region:
-        static: us-east-1
+        static: ${REGION:us-east-1}
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5001}/${DB_NAME:metadata_db}
     username: ${DB_USERNAME:db_user}
@@ -36,15 +36,15 @@ spring:
     show-sql: true
 app:
   buckets:
-    raw: raw-video-bucket
-    streams: streams-bucket
+    raw: ${RAW_BUCKET:raw-video-bucket}
+    streams: ${STREAMS_BUCKET:streams-bucket}
 server:
   port: 20009
 video:
   encoding:
-    mode: auto # auto, gpu, cpu
+    mode: ${ENCODING_MODE:auto} # auto, gpu, cpu
     preset:
       gpu: p4 # p1-p7
       cpu: faster # ultrafast to veryslow
   segment:
-    duration: 10
+    duration: ${SEGMENT_DURATION:10}

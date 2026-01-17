@@ -1,0 +1,79 @@
+networks:
+  streaming-platform-network:
+    driver: bridge
+
+services:
+  localstack:
+    image: localstack/localstack
+    container_name: localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3,sqs,cloudfront,ssm
+      - DEBUG=1
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - "../localstack-init:/etc/localstack/init/ready.d"
+    networks:
+      - streaming-platform-network
+  
+  metadata-db:
+    image: postgres:latest
+    container_name: metadata-db
+    ports:
+      - "5001:5432"
+    env_file:
+      - "../env/metadata.postgres.env"
+    networks:
+      - streaming-platform-network
+  
+  local-cdn:
+    image: nginx:alpine
+    container_name: local-cdn
+    volumes:
+      - "../nginx/nginx.conf:/etc/nginx/nginx.conf:ro"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - localstack
+    networks:
+     - streaming-platform-network
+  
+  sp-upload-service:
+    image: sp-upload-service
+    container_name: sp-upload-service
+    ports:
+      - "20001:20001"
+    env_file:
+      - "../env/upload.service.env"
+    depends_on:
+      - localstack
+      - metadata-db
+    networks:
+      - streaming-platform-network
+  
+  sp-play-service:
+    image: sp-play-service
+    container_name: sp-play-service
+    ports:
+      - "20020:20020"
+    env_file:
+      - "../env/play.service.env"
+    depends_on:
+      - localstack
+      - metadata-db
+    networks:
+      - streaming-platform-network
+  
+  sp-video-processing-service:
+    image: sp-video-processing-service
+    container_name: sp-video-processing-service
+    ports:
+      - "20009:20009"
+    env_file:
+      - "../env/video.service.env"
+    depends_on:
+      - localstack
+      - metadata-db
+    networks:
+      - streaming-platform-network

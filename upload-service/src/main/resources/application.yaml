@@ -3,12 +3,6 @@ spring:
     name: upload-service
   autoconfigure:
     exclude: io.awspring.cloud.autoconfigure.s3.S3AutoConfiguration
-  # mvc:
-  #   apiversion:
-  #     use:
-  #       path-segment: 1 # The version is expected in the second path segment (index 1 after the root, e.g., /api/v1/products)
-  #     supported: v1.0,v2.0
-  #     default: v1.0
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5001}/${DB_NAME:metadata_db}
     username: ${DB_USERNAME:db_user}
@@ -27,19 +21,20 @@ spring:
   cloud:
     aws:
       s3:
-        endpoint: http://localhost:4566
+        endpoint: ${S3_ENDPOINT:http://localhost:4566}
         path-style-access-enabled: true
-        bucket-name: raw-video-bucket
+        bucket-name: ${RAW_BUCKET:raw-video-bucket}
       credentials:
-        access-key: test
-        secret-key: test
+        access-key: ${ACCESS_KEY:test}
+        secret-key: ${SECRET_KEY:test}
       region:
-        static: us-east-1
+        static: ${REGION:us-east-1}
 server:
-  port: ${UPLOAD_SERVICE_PORT:20001}
+  port: 20001
+  
 logging:
   level:
     org:
       springframework:
-        security: DEBUG
-        web: DEBUG
+        security: ${SECURITY_LOG_LEVEL:DEBUG}
+        web: ${APP_LOG_LEVEL:INFO}

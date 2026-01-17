@@ -96,6 +96,8 @@ async function uploadFileMultipart() {
     console.log(`Signing part ${partNumber}...`);
     const uploadUrl = await signPart(key, uploadId, partNumber);
 
+    console.log(uploadUrl);
+
     console.log(`Uploading part ${partNumber} (${chunk.length} bytes)...`);
     const eTag = await uploadPart(uploadUrl, chunk);
 
