@@ -21,7 +21,7 @@ public class PlayService {
   @Value("${app.buckets.streams}")
   private String streamsBucket;
 
-  @Value("${app.cdn.base-url:}")
+  @Value("${app.cdn.base-url:http://localhost:8080}")
   private String cdnBaseUrl;
 
   @PostConstruct
