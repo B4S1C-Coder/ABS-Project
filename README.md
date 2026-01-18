@@ -30,4 +30,7 @@ Detailed working below:
   <img alt="System Architecture Diagram" src="./ref/JobLeaseDark.png" width="600">
 </picture>
 
-Benchmarks coming soon...
+## Deployment
+![aws-arch](./deploy/deployed_arc.png)
+
+More details in [deploy/README.md](./deploy/README.md).
