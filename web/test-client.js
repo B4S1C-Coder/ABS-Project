@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 const BASE_URL = "http://localhost:20001/internal/uploads";
-const FILE_PATH = "../res/the-calling.mp4";
+const FILE_PATH = "../res/robo.mp4";
 const PART_SIZE = 5 * 1024 * 1024; // 5 MB
 
 // -----------------------------
