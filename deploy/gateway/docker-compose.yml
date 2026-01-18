@@ -1,0 +1,16 @@
+networks:
+  streaming-platform-network:
+    driver: bridge
+
+services:
+  local-cdn:
+    image: nginx:alpine
+    container_name: local-cdn
+    volumes:
+      - "nginx.conf:/etc/nginx/nginx.conf:ro"
+    ports:
+      - "8080:8080"
+    networks:
+     - streaming-platform-network
+    env_file:
+      - "nginx.env"

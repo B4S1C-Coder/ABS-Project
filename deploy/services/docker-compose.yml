@@ -1,0 +1,24 @@
+networks:
+  streaming-platform-network:
+    driver: bridge
+
+services:
+  sp-upload-service:
+    image: saksham2005/sp-upload-service
+    container_name: sp-upload-service
+    ports:
+      - "20001:20001"
+    env_file:
+      - "../env/upload.service.env"
+    networks:
+      - streaming-platform-network
+  
+  sp-play-service:
+    image: saksham2005/sp-play-service
+    container_name: sp-play-service
+    ports:
+      - "20020:20020"
+    env_file:
+      - "../env/play.service.env"
+    networks:
+      - streaming-platform-network
