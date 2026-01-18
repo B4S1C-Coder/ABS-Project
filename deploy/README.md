@@ -11,3 +11,5 @@ This folder contains the deployment artifacts for the project. Since at the time
 - `External Private Network`: Consists of `Postgres via (Neon)`, `video-processing-service` running locally on my laptop can be treated as an _"external video processing provider"_.
 
 - `Public Network`: Consists of `AWS EC2 Instance A`.
+
+![aws-arch](./deployed_arc.png)
