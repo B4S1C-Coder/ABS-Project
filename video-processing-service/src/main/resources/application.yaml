@@ -48,3 +48,7 @@ video:
       cpu: faster # ultrafast to veryslow
   segment:
     duration: ${SEGMENT_DURATION:10}
+logging:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    topic: service-logs

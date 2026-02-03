@@ -44,3 +44,6 @@ logging:
       springframework:
         security: ${SECURITY_LOG_LEVEL:DEBUG}
         web: ${APP_LOG_LEVEL:INFO}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    topic: service-logs

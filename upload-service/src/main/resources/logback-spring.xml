@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Read service name from Spring config -->
+    <springProperty scope="context" name="SERVICE_NAME" 
+                    source="spring.application.name" defaultValue="upload-service"/>
+    
+    <!-- Console Appender with JSON format -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"service":"${SERVICE_NAME}"}</customFields>
+        </encoder>
+    </appender>
+    
+    <!-- Include shared Kafka appender -->
+    <include resource="logback-kafka.xml"/>
+    
+    <!-- Profile: local/dev - logs to both console and Kafka -->
+    <springProfile name="local,dev">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_KAFKA"/>
+        </root>
+    </springProfile>
+    
+    <!-- Profile: prod - logs only to Kafka -->
+    <springProfile name="prod">
+        <root level="INFO">
+            <appender-ref ref="ASYNC_KAFKA"/>
+        </root>
+    </springProfile>
+    
+    <!-- Default (no profile) - console only -->
+    <springProfile name="default">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+    
+    <!-- Service-specific logger levels -->
+    <logger name="com.b4s1ccoder.upload_service" level="DEBUG"/>
+    <logger name="org.apache.kafka" level="WARN"/>
+</configuration>

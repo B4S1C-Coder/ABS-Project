@@ -142,6 +142,7 @@ services:
     depends_on:
       - localstack
       - metadata-db
+      - kafka
     networks:
       - streaming-platform-network
   
@@ -155,6 +156,7 @@ services:
     depends_on:
       - localstack
       - metadata-db
+      - kafka
     networks:
       - streaming-platform-network
   
@@ -173,6 +175,8 @@ services:
       localstack:
         condition: service_healthy
       metadata-db:
+        condition: service_started
+      kafka:
         condition: service_started
     networks:
       - streaming-platform-network
