@@ -3,8 +3,8 @@ networks:
     driver: bridge
 
 volumes:
-  elasticsearch-data: "../volumes/elasticsearch-data"
-  kafka-data: "../volumes/kafka-data"
+  elasticsearch-data:
+  kafka-data:
 
 services:
   localstack:
@@ -48,7 +48,8 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       # Listener
-      KAFKA_LISTENERS: PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092
+      # KAFKA_LISTENERS: PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
@@ -60,15 +61,15 @@ services:
       # Storage
       CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
       KAFKA_LOG_DIRS: /var/lib/kafka/data
-      volumes:
-        - kafka-data:/var/lib/kafka/data
-      networks:
-        - streaming-platform-network
-      healthcheck:
-        test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
-        interval: 10s
-        timeout: 5s
-        retries: 5
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    networks:
+      - streaming-platform-network
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
@@ -133,10 +134,13 @@ services:
      - streaming-platform-network
   
   sp-upload-service:
-    image: sp-upload-service
+    image: sp-upload-service:v2.0
     container_name: sp-upload-service
     # ports:
     #   - "20001:20001"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
     env_file:
       - "../env/upload.service.env"
     depends_on:
@@ -147,10 +151,13 @@ services:
       - streaming-platform-network
   
   sp-play-service:
-    image: sp-play-service
+    image: sp-play-service:v2.0
     container_name: sp-play-service
     # ports:
     #   - "20020:20020"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
     env_file:
       - "../env/play.service.env"
     depends_on:
@@ -161,7 +168,7 @@ services:
       - streaming-platform-network
   
   sp-video-processing-service:
-    image: sp-video-processing-service
+    image: sp-video-processing-service:v2.0
     container_name: sp-video-processing-service
     runtime: nvidia
     # ports:
@@ -169,6 +176,8 @@ services:
     env_file:
       - "../env/video.service.env"
     environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
     depends_on:
