@@ -37,6 +37,7 @@ services:
   
   kafka:
     image: confluentinc/cp-kafka:7.5.0
+    # profiles: ["observability"]
     container_name: kafka
     ports:
       - "9092:9092"
@@ -73,6 +74,7 @@ services:
     
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    profiles: ["observability"]
     container_name: elasticsearch
     environment:
       - discovery.type=single-node
@@ -93,6 +95,7 @@ services:
   
   logstash:
     image: docker.elastic.co/logstash/logstash:8.11.0
+    profiles: ["observability"]
     container_name: logstash
     volumes:
       - ../logstash/pipeline:/usr/share/logstash/pipeline:ro
@@ -110,6 +113,7 @@ services:
   
   kibana:
     image: docker.elastic.co/kibana/kibana:8.11.0
+    profiles: ["observability"]
     container_name: kibana
     ports:
       - "5601:5601"
@@ -134,7 +138,7 @@ services:
      - streaming-platform-network
   
   sp-upload-service:
-    image: sp-upload-service:v2.0
+    image: sp-upload-service:v3.0
     container_name: sp-upload-service
     # ports:
     #   - "20001:20001"
@@ -151,7 +155,7 @@ services:
       - streaming-platform-network
   
   sp-play-service:
-    image: sp-play-service:v2.0
+    image: sp-play-service:v3.0
     container_name: sp-play-service
     # ports:
     #   - "20020:20020"
@@ -168,7 +172,7 @@ services:
       - streaming-platform-network
   
   sp-video-processing-service:
-    image: sp-video-processing-service:v2.0
+    image: sp-video-processing-service:v3.0
     container_name: sp-video-processing-service
     runtime: nvidia
     # ports:
