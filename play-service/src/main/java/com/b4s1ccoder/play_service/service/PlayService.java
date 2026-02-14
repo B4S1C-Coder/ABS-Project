@@ -45,26 +45,6 @@ public class PlayService {
     }
   }
 
-  // @PostConstruct
-  // public void init() {
-  //   if (useCdn) {
-  //     log.info("CDN enabled. Base URL: {}", cdnBaseUrl);
-
-  //     try {
-  //       String distributionId = ssmClient.getParameter(
-  //         GetParameterRequest.builder()
-  //           .name("/app/cloudfront-distribution-id")
-  //         .build()
-  //       ).parameter().value();
-
-  //       log.info("Loaded CDN distribution ID: {}", distributionId);
-  //     } catch (Exception e) {
-  //       log.error("Failed to fetch CDN ID from SSM. Falling back to S3 direct.", e);
-  //       this.useCdn = false;
-  //     }
-  //   }
-  // }
-
   public String getManifestUrl(String videoId) {
     lazilyResolveCdn();
 

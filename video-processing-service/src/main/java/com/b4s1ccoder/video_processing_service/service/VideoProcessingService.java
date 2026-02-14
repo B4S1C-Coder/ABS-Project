@@ -8,12 +8,15 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import com.b4s1ccoder.common.enums.VideoStatus;
 import com.b4s1ccoder.video_processing_service.config.VideoEncodingConfig;
 import com.b4s1ccoder.video_processing_service.config.VideoSegmentConfig;
 import com.b4s1ccoder.video_processing_service.config.WorkerId;
@@ -43,6 +46,9 @@ public class VideoProcessingService {
   private final CurrentJobHolder currentJobHolder;
   private final VideoEncodingConfig encodingConfig;
   private final VideoSegmentConfig segmentConfig;
+  private final JobStateService jobStateService;
+
+  private final ScheduledExecutorService heartbeatScheduler = Executors.newSingleThreadScheduledExecutor();
 
   // Will be determined if GPU is available or not, decision is cached
   private Boolean useGpu = null;
@@ -181,8 +187,27 @@ public class VideoProcessingService {
   @Value("${app.buckets.streams}")
   private String streamsBucket;
 
+  private ScheduledFuture<?> startHeartbeat(VideoProcessingJob job, AtomicBoolean leaseLost) {
+    return heartbeatScheduler.scheduleAtFixedRate(() -> {
+      try {
+        int updated =  videoProcessingJobRepository.extendLease(
+          job.getId(), workerId.getId(), LocalDateTime.now().plusSeconds(60)
+        );
+
+        if (updated == 0) {
+          log.error("Lost lease for job {}", job.getId());
+          leaseLost.set(true);
+          // throw new IllegalStateException("Lease lost");
+        }
+
+        log.debug("Lease extended for job {}", job.getId());
+      } catch (Exception e) {
+        log.error("Heartbeat failed for job {}", job.getId(), e);
+      }
+    }, 20, 20, TimeUnit.SECONDS);
+  }
+
   // Boolean return indicates whether job was actually claimed or not
-  @Transactional
   public boolean process(String bucket, String key) throws Exception {
     Video video = videoRepository.findByS3Key(key).orElseThrow(
       () -> new IllegalStateException("No video found for s3Key = " + key)
@@ -196,39 +221,39 @@ public class VideoProcessingService {
     // Job claiming moved to DB layer (lease extension also at DB layer)
     // As DB is the source of truth and authoritative regarding who owns
     // what job
-    boolean claimed = videoProcessingJobRepository.claimJob(
-      job.getId(), workerId.getId(), LocalDateTime.now().plusMinutes(10)
-    );
 
-    if (!claimed) {
+    if (!jobStateService.claimJob(job)) {
       log.info("Job {} already claimed, skipping ...", job.getId());
       return false;
     }
     
     currentJobHolder.set(job.getId());
     workerState.markWorking(key);
+    
+    AtomicBoolean leaseLost = new AtomicBoolean(false);
+    ScheduledFuture<?> heartbeat = startHeartbeat(job, leaseLost);
 
     try {
       Path input = download(bucket, key);
       Path outputDir = Files.createTempDirectory("hls-");
 
-      runFfmpeg(input, outputDir);
+      runFfmpeg(input, outputDir, leaseLost);
       uploadToS3(outputDir, key);
       cleanup(input, outputDir);
 
-      job.setStatus(VideoStatus.READY);
-      job = videoProcessingJobRepository.save(job);
+      jobStateService.markReady(job);
 
       return true;
 
     } catch (Exception e) {
       log.error("Video processing failed for {}", key, e);
-
-      job.setStatus(VideoStatus.FAILED);
-      videoProcessingJobRepository.save(job);
+      jobStateService.markFailed(job);
 
       throw e;
     } finally {
+      if (heartbeat != null) {
+        heartbeat.cancel(true);
+      }
       workerState.markIdle();
       currentJobHolder.clear();
     }
@@ -252,7 +277,7 @@ public class VideoProcessingService {
   }
 
   // FFMPeg CLI must be installed in the environment wherever this service runs
-  private void runFfmpeg(Path input, Path outputDir) throws Exception {
+  private void runFfmpeg(Path input, Path outputDir, AtomicBoolean leaseLost) throws Exception {
     // We use the FFmpeg cli because, it would be more efficient and fast to do the heavy
     // video processing work on CPU Threads, rather than using a Java wrapper that might
     // do this work on Java threads.
@@ -273,7 +298,18 @@ public class VideoProcessingService {
     try (BufferedReader reader = new BufferedReader(
       new InputStreamReader(process.getInputStream())
     )) {
-      reader.lines().forEach(log::info); // Log, whatever FFmpeg outputs
+      // reader.lines().forEach(log::info); // Log, whatever FFmpeg outputs
+      String line;
+
+      while ((line = reader.readLine()) != null) {
+        log.info(line);
+
+        if (leaseLost.get()) {
+          log.error("Lease lost -- stopping FFmpeg");
+          process.destroyForcibly();
+          throw new IllegalStateException("Lease lost");
+        }
+      }
     }
 
     int exitCode = process.waitFor();

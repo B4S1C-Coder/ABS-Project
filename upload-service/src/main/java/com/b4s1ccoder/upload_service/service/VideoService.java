@@ -161,4 +161,13 @@ public class VideoService {
     job.setStatus(VideoStatus.PENDING);
     videoProcessingJobRepository.save(job);
   }
+
+  // Just for diagnostics for the dummy UI
+  public List<Video> getAllVideos() {
+    return videoRepository.findAll();
+  }
+
+  public List<VideoProcessingJob> getAllJobs() {
+    return videoProcessingJobRepository.findAll();
+  }
 }

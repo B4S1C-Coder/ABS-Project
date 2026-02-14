@@ -1,0 +1,14 @@
+FROM maven:3.9.9-eclipse-temurin-21 AS builder
+
+WORKDIR /app
+
+# All the POMs
+COPY pom.xml .
+COPY common/pom.xml common/pom.xml
+COPY upload-service/pom.xml upload-service/pom.xml
+COPY play-service/pom.xml play-service/pom.xml
+COPY video-processing-service/pom.xml video-processing-service/pom.xml
+
+RUN mvn -pl upload-service -am dependency:go-offline -B
+
+CMD [ "mvn", "-pl", "upload-service", "-am", "spring-boot:run" ]

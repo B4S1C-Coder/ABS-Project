@@ -1,5 +1,6 @@
 package com.b4s1ccoder.upload_service.controller;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,7 +14,6 @@ import com.b4s1ccoder.common.dto.InitiateMultipartUploadDTO;
 import com.b4s1ccoder.common.dto.InitiateMultipartUploadResponseDTO;
 import com.b4s1ccoder.common.dto.IntermediateMultipartUploadDTO;
 import com.b4s1ccoder.common.dto.PreSignedUploadUrlDTO;
-// import com.b4s1ccoder.common.dto.VideoUploadDTO;
 import com.b4s1ccoder.upload_service.service.VideoService;
 
 import jakarta.validation.Valid;
@@ -24,20 +24,15 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class VideoController {
 
+  @Value("${app.diagnostic-endpoints:not-allowed}")
+  private String diagnosticEndpoint;
+
   private final VideoService videoService;
 
   @GetMapping("/health")
   public ResponseEntity<String> healthCheck() {
     return ResponseEntity.ok("Upload service is up and running.");
   }
-
-  // @PostMapping("/initiate-single")
-  // public ResponseEntity<PreSignedUploadUrlDTO> initiateUploadSimple(@Valid @RequestBody VideoUploadDTO req) {
-  //   String presignedUrl = videoService.initiateUpload(req);
-  //   return ResponseEntity
-  //     .status(HttpStatus.CREATED)
-  //     .body(new PreSignedUploadUrlDTO(presignedUrl));
-  // }
 
   @PostMapping("/initiate")
   public ResponseEntity<InitiateMultipartUploadResponseDTO> initiateUploadMultipart(
@@ -64,5 +59,21 @@ public class VideoController {
   public ResponseEntity<Void> complete(@Valid @RequestBody CompleteMultipartUploadDTO req) {
     videoService.completeUpload(req.getKey(), req.getUploadId(), req.getParts());
     return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+  }
+
+  @GetMapping("/all-videos")
+  public ResponseEntity<?> getAllVideos() {
+    if (!diagnosticEndpoint.equals("allow")) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    return ResponseEntity
+      .status(HttpStatus.OK)
+      .body(videoService.getAllVideos());
+  }
+
+  @GetMapping("/all-jobs")
+  public ResponseEntity<?> getAllJobs() {
+    if (!diagnosticEndpoint.equals("allow")) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    return ResponseEntity
+      .status(HttpStatus.OK)
+      .body(videoService.getAllJobs());
   }
 }

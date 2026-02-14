@@ -1,1 +1,100 @@
-In video processing service, in process(...) make the claim logic better by accounting for Status PROCESSING as well to claim failed jobs.
+Sample response bodies for ui
+
+/all-videos
+
+[
+  {
+    "id": "88ba46a6-a8ba-46c1-9430-fac7357c1ba6",
+    "title": "My Upload",
+    "description": "Uploaded via Node.js client",
+    "originalFilename": "robo.mp4",
+    "s3Key": "16f8e63b-b6fc-4696-b56b-ebca14d7fef4-robo.mp4",
+    "createdAt": "2026-02-14T15:44:05.004685",
+    "updatedAt": "2026-02-14T15:44:05.004791"
+  },
+  {
+    "id": "dd2d03c5-782f-4f38-9db7-d1e86f9efbbb",
+    "title": "My Upload",
+    "description": "Uploaded via Node.js client",
+    "originalFilename": "robo.mp4",
+    "s3Key": "df8cc187-c1c0-43ae-ada7-7aa86c5a2ae7-robo.mp4",
+    "createdAt": "2026-02-14T23:12:05.415062",
+    "updatedAt": "2026-02-14T23:12:05.415129"
+  }
+]
+
+/all-jobs
+[
+  {
+    "id": "7714ab29-5bd6-4ecf-956e-2d12f8c88cf8",
+    "video": {
+      "id": "88ba46a6-a8ba-46c1-9430-fac7357c1ba6",
+      "title": "My Upload",
+      "description": "Uploaded via Node.js client",
+      "originalFilename": "robo.mp4",
+      "s3Key": "16f8e63b-b6fc-4696-b56b-ebca14d7fef4-robo.mp4",
+      "createdAt": "2026-02-14T15:44:05.004685",
+      "updatedAt": "2026-02-14T15:44:05.004791",
+      "hibernateLazyInitializer": {}
+    },
+    "status": "READY",
+    "workerId": null,
+    "leaseUntil": null,
+    "createdAt": "2026-02-14T15:44:05.039964",
+    "updatedAt": "2026-02-14T15:44:36.630355"
+  },
+  {
+    "id": "891ff428-4416-485a-8e98-f8cc1bf031f7",
+    "video": {
+      "id": "dd2d03c5-782f-4f38-9db7-d1e86f9efbbb",
+      "title": "My Upload",
+      "description": "Uploaded via Node.js client",
+      "originalFilename": "robo.mp4",
+      "s3Key": "df8cc187-c1c0-43ae-ada7-7aa86c5a2ae7-robo.mp4",
+      "createdAt": "2026-02-14T23:12:05.415062",
+      "updatedAt": "2026-02-14T23:12:05.415129",
+      "hibernateLazyInitializer": {}
+    },
+    "status": "READY",
+    "workerId": null,
+    "leaseUntil": null,
+    "createdAt": "2026-02-14T23:12:05.430837",
+    "updatedAt": "2026-02-14T23:12:36.309349"
+  },
+  {
+    "id": "0a8b04cc-3fe6-47bd-ab7f-10ef6573cce6",
+    "video": {
+      "id": "21c48e25-69d4-4106-b80d-a77092a31074",
+      "title": "My Upload",
+      "description": "Uploaded via Node.js client",
+      "originalFilename": "robo.mp4",
+      "s3Key": "4ab5c5fe-9b8c-4a0e-9214-4c37afebff4b-robo.mp4",
+      "createdAt": "2026-02-14T23:17:03.925",
+      "updatedAt": "2026-02-14T23:17:03.92503",
+      "hibernateLazyInitializer": {}
+    },
+    "status": "READY",
+    "workerId": null,
+    "leaseUntil": null,
+    "createdAt": "2026-02-14T23:17:03.926856",
+    "updatedAt": "2026-02-14T23:17:04.094644"
+  },
+  {
+    "id": "a1ebe29e-45ce-4bf1-bc03-ce5bb5faad49",
+    "video": {
+      "id": "0e3a29b7-b62c-42f5-abe7-08aa1495ab22",
+      "title": "My Upload",
+      "description": "Uploaded via Node.js client",
+      "originalFilename": "robo.mp4",
+      "s3Key": "6bc41d18-adb7-4f10-84f3-751404690a71-robo.mp4",
+      "createdAt": "2026-02-15T00:18:33.478843",
+      "updatedAt": "2026-02-15T00:18:33.478931",
+      "hibernateLazyInitializer": {}
+    },
+    "status": "PROCESSING",
+    "workerId": "acfcf3f3-f0b5-49fe-b7a4-d37149473df4",
+    "leaseUntil": "2026-02-15T00:19:36.874265",
+    "createdAt": "2026-02-15T00:18:33.512929",
+    "updatedAt": "2026-02-15T00:18:36.917029"
+  }
+]
