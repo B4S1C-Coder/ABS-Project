@@ -18,7 +18,7 @@ The goal of this project is to learn about the video processing pipelines used i
 ## Techstack
 Spring Boot 4.0.1, Postgres, AWS S3, AWS SQS (AWS Services provided via Localstack).
 
-## Idempotent Job Processing
+## Job Processing
 Since there can be multiple instances of the `video-processing-service` (aka `chunk-service`), it is important to ensure that video is only **processed once** and by a **single worker** (at any given time). Along with this, we would also want to ensure that in case of a failure, the job is not left hanging (i.e. a situation in which a video is not processed by any worker at all).
 
 Each `video-processing-service` would *"lease"* i.e. temporarily own the job (video to process). It works by updating heartbeat timestamps in the `metadata-db` to assert it's ownership throughout the duration of processing. Whenever a heartbeat timestamp is not updated within an acceptible timeframe, then that job can be claimed by any other instance.
@@ -29,6 +29,10 @@ Detailed working below:
   <source media="(prefers-color-scheme: light)" srcset="./ref/JobLeaseLight.png">
   <img alt="System Architecture Diagram" src="./ref/JobLeaseDark.png" width="600">
 </picture>
+
+>**Note**: The above mechanism is not an `exactly once` processing system, but an `atleast once` processing system. If after successfully processing the video and uploading the streams, the worker **crashes before deleting the SQS message**. What happened now is that the `Job Record` in the DB would not get updated, neither would the message get deleted from SQS. So, even though the video is correctly processed and stored, the SQS message would become available again, plus the job record would show an expired heartbeat timestamp, this would result in another worker taking the job and processing it again.
+
+A possible fix for the above could be to, check if the processed stuff already exists in the bucket and only then starting the FFmpeg process. However, as of writing this fix has **not been implemented**.
 
 ## Deployment
 ![aws-arch](./deploy/deployed_arc.png)
