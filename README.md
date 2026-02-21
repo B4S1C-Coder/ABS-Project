@@ -40,6 +40,9 @@ A possible fix for the above could be to, check if the processed stuff already e
 More details in [deploy/README.md](./deploy/README.md).
 
 ## Running Locally
+
+>**Note**: Please ensure you put a `.mp4` file named `robo.mp4` in the [res/](./res/) folder. This is because the seeding scripts loacted in [web/](./web) assume this name. Do this only if this .mp4 file is not present in the repo.
+
 ### Development Setup
 >**Note**: Observability tools: Elasticsearch, Kibana, Logstash will not be started during development. If you do need them then use ```docker compose -f ./infra/dev/docker-compose.yml --profile observability up```
 
@@ -72,7 +75,25 @@ The entire `Project Stack` -> `LocalStack(S3, SQS)` + `NGINX` + `Postgres` + `El
 
 So, do ensure you increase the memory limit in your `.wslconfig` if you plan to run the full project.
 
-#### First Time Setup
+#### Fast Setup (Just running the project)
+After pulling the repo, run the following commands from the repo root only.
+
+If you wish to run the full project with observability (ELK Stack):
+```bash
+docker compose -f ./infra/demo/docker-compose.yml --profile observability up
+```
+To tear it down (whilst preserving the volumes):
+```bash
+docker compose -f ./infra/demo/docker-compose.yml --profile observability down
+```
+For complete destruction (including tearing down the volumes):
+```bash
+docker compose -f ./infra/demo/docker-compose.yml --profile observability down -v
+```
+
+Simply remove the `--profile observability` from the above commands if you wish to run the project without observability i.e. ELK Stack.
+
+#### First Time Setup (Do this only if you wish to make new Docker Images)
 Build the docker images locally:
 ```bash
 docker build -f upload-service/Dockerfile -t sp-upload-service:v3.0 .

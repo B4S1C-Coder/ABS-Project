@@ -35,5 +35,6 @@ build/
 .env.local
 
 res/*.mp4
+!res/robo.mp4
 
 keys/*.pem
