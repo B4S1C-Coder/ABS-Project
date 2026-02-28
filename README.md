@@ -1,4 +1,5 @@
 # Streaming Platform
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/B4S1C-Coder/ABS-Project)
 Project to learn about Adaptive Bit Rate Streaming.
 
 <picture>
