@@ -40,6 +40,12 @@ A possible fix for the above could be to, check if the processed stuff already e
 
 More details in [deploy/README.md](./deploy/README.md).
 
+## Benchmark
+The following benchmark is run **only for 15 minutes** due to hardware constraints. You are fee to run the benchmark completely to get complete insights.
+![benchmark](./docs/sp-benchmark.png)
+
+More details in [benchmark.md](./benchmark.md).
+
 ## Running Locally
 
 >**Note**: Please ensure you put a `.mp4` file named `robo.mp4` in the [res/](./res/) folder. This is because the seeding scripts loacted in [web/](./web) assume this name. Do this only if this .mp4 file is not present in the repo.

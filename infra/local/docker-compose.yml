@@ -173,6 +173,7 @@ services:
   
   sp-video-processing-service:
     image: sp-video-processing-service:v3.0
+    restart: on-failure
     # container_name: sp-video-processing-service
     runtime: nvidia
     # ports:
