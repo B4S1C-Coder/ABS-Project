@@ -111,9 +111,12 @@ async function runBenchmark(numUploads = 5) {
 
     for (const job of jobs) {
       if (!jobState[job.id]) {
+        // Force UTC by appending 'Z' if the Java backend omitted it
+        const safeCreatedAt = job.createdAt.endsWith('Z') ? job.createdAt : `${job.createdAt}Z`;
+
         jobState[job.id] = {
            firstSeenParams: { ...job },
-           createdAt: new Date(job.createdAt).getTime(),
+           createdAt: new Date(safeCreatedAt).getTime(),
            trackedQueueDwell: false,
            lastWorkerId: null,
            readyTime: null
@@ -177,4 +180,4 @@ async function runBenchmark(numUploads = 5) {
 
 }
 
-runBenchmark(5).catch(console.error);
+runBenchmark(100).catch(console.error);
