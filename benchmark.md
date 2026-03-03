@@ -34,3 +34,7 @@ You might think that Average Queue Dwell Time of **1519.95 Seconds** is huge. Bu
 >**Note**: Benchmark Machine maybe weaker, but due to some reasons I could not increase the RAM limit in `.wslconfig` and WSL2 kept crashing when I ran the benchmark. Hence, I switched to a native linux machine (my old laptop).
 
 In the end this is just a project made by a student trying to understand how systems like Netflex, Prime Video, HotStar work and process large amounts of raw video data.
+
+Some screenshots of btop during the benchmark:
+![1](./docs/Screenshot_20260303_131539.png)
+![2](./docs/Screenshot_20260303_132717.png)
