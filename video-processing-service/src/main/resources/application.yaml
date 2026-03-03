@@ -38,6 +38,11 @@ app:
   buckets:
     raw: ${RAW_BUCKET:raw-video-bucket}
     streams: ${STREAMS_BUCKET:streams-bucket}
+  mock:
+    enabled: ${MOCK_ENABLED:false}
+    encoding-speed-ratio: ${MOCK_ENCODING_SPEED_RATIO:0.5}
+    base-video-duration-sec: ${MOCK_BASE_VIDEO_DURATION_SEC:60}
+    crash-probability: ${MOCK_CRASH_PROBABILITY:0.1}
 server:
   port: 20009
 video:

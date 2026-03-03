@@ -13,6 +13,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.UUID;
+import java.util.Random;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Service;
 import com.b4s1ccoder.video_processing_service.config.VideoEncodingConfig;
 import com.b4s1ccoder.video_processing_service.config.VideoSegmentConfig;
 import com.b4s1ccoder.video_processing_service.config.WorkerId;
+import com.b4s1ccoder.video_processing_service.config.MockConfig;
 import com.b4s1ccoder.video_processing_service.health.WorkerState;
 import com.b4s1ccoder.video_processing_service.model.Video;
 import com.b4s1ccoder.video_processing_service.model.VideoProcessingJob;
@@ -47,6 +50,7 @@ public class VideoProcessingService {
   private final VideoEncodingConfig encodingConfig;
   private final VideoSegmentConfig segmentConfig;
   private final JobStateService jobStateService;
+  private final MockConfig mockConfig;
 
   private final ScheduledExecutorService heartbeatScheduler = Executors.newSingleThreadScheduledExecutor();
 
@@ -234,12 +238,17 @@ public class VideoProcessingService {
     ScheduledFuture<?> heartbeat = startHeartbeat(job, leaseLost);
 
     try {
-      Path input = download(bucket, key);
-      Path outputDir = Files.createTempDirectory("hls-");
+      if (mockConfig.isEnabled()) {
+        log.info("Mock mode enabled, simulating processing...");
+        simulateMockProcessing(job.getId(), leaseLost);
+      } else {
+        Path input = download(bucket, key);
+        Path outputDir = Files.createTempDirectory("hls-");
 
-      runFfmpeg(input, outputDir, leaseLost);
-      uploadToS3(outputDir, key);
-      cleanup(input, outputDir);
+        runFfmpeg(input, outputDir, leaseLost);
+        uploadToS3(outputDir, key);
+        cleanup(input, outputDir);
+      }
 
       jobStateService.markReady(job);
 
@@ -256,6 +265,45 @@ public class VideoProcessingService {
       }
       workerState.markIdle();
       currentJobHolder.clear();
+    }
+  }
+
+  private void simulateMockProcessing(UUID jobId, AtomicBoolean leaseLost) throws InterruptedException {
+    Random random = new Random();
+    
+    // Simulate Video Duration & Encoding Speed
+    int baseDuration = mockConfig.getBaseVideoDurationSec();
+    double variation = (random.nextDouble() * 0.4) - 0.2; // +/- 20%
+    double actualVideoDuration = baseDuration * (1 + variation);
+    
+    double encodingTime = actualVideoDuration / mockConfig.getEncodingSpeedRatio();
+    
+    // Simulate Download Time (varies based on video duration)
+    // Assume 5-10 seconds for 60 seconds video
+    double downloadTime = (actualVideoDuration / 60.0) * (5.0 + random.nextDouble() * 5.0); 
+    
+    // Simulate Upload Time (larger than download as it uploads multiple streams)
+    double uploadTime = (actualVideoDuration / 60.0) * (15.0 + random.nextDouble() * 10.0);
+
+    double totalDelaySeconds = downloadTime + encodingTime + uploadTime;
+
+    log.info("Simulating DL/UL/Encode. Total simulated time: {}s for video duration: {}s", totalDelaySeconds, actualVideoDuration);
+
+    long sleepChunks = (long) totalDelaySeconds;
+    
+    for (int i = 0; i < sleepChunks; i++) {
+        if (leaseLost.get()) {
+            log.error("Lease lost during mock processing");
+            throw new IllegalStateException("Lease lost");
+        }
+        Thread.sleep(1000);
+    }
+
+    // Check for random crash ONLY. We do it using Runtime.halt to kill immediately
+    if (random.nextDouble() < mockConfig.getCrashProbability()) {
+      log.error("SIMULATED CRASH in worker, killing process immediately...");
+      // Exit brutally so heartbeat stops, lease expires. MTTR will trace this.
+      Runtime.getRuntime().halt(1); 
     }
   }
 
